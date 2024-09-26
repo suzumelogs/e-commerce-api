@@ -1,0 +1,205 @@
+// for experiment I have been using planet scale db, but you can use any mysql db 
+generator client {
+  provider = "prisma-client-js"
+   previewFeatures = ["fullTextSearch", "fullTextIndex"]
+}
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+  relationMode = "prisma"
+
+}
+model Store {
+ id String @id @default(uuid())
+  name String
+  userId String
+  billboards Billboard[] @relation("BillBoardToStore")
+  categories Category[] @relation("StoreToCategory")
+  sizes Size[] @relation("StoreToSize")
+  colors Color[] @relation("StoreToColor")
+  products Product[] @relation("StoreToProduct")
+  orders Orders[] @relation("StoreToOrder")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+}
+// after test remove default userRole
+model User {
+  id String @id @default(uuid())
+  email String @unique
+  googleId String? @unique
+  displayName  String
+  passwordHash String?
+  avatarUrl String?
+  authType AuthType
+  userRole UserRole @default(USER)
+  orders Orders[] 
+  rewiews Review[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Billboard {
+  id String @id @default(uuid())
+  storeId String
+  store Store @relation("BillBoardToStore",fields: [storeId],references: [id],onDelete: Cascade)
+  Categories Category[] @relation()
+  label String
+  imageUrl String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([storeId])
+}
+model Category {
+  id String @id @default(uuid())
+  storeId String
+  store Store @relation("StoreToCategory",fields: [storeId],references: [id],onDelete: Cascade)
+  billboardId String
+  billboard Billboard @relation(fields: [billboardId],references: [id],onDelete: Cascade)
+  Products Product[] @relation("CategoryToProduct")
+  name String
+  imageUrl String
+  gender String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([storeId])
+  @@index([billboardId])
+}
+model Size {
+  id String @id @default(uuid())
+  storeId String
+  store Store @relation("StoreToSize",fields: [storeId],references: [id],onDelete: Cascade)
+  name String
+  value String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([storeId])
+}
+model Color {
+  id String @id @default(uuid())
+  storeId String
+  store Store @relation("StoreToColor",fields: [storeId],references: [id],onDelete: Cascade)
+  name String
+  value String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([storeId])
+}
+model Product {
+  id          String    @id @default(uuid())
+  storeId     String    
+  store       Store     @relation("StoreToProduct", fields: [storeId], references: [id])
+  categoryId  String    
+  category    Category  @relation("CategoryToProduct", fields: [categoryId], references: [id])
+  name        String
+  price       Decimal
+  Images      Image[]
+  description String
+  Sizes       ProductSize[]
+  Colors      ProductColor[]
+  rewiews     Review[]
+  orders      OrderItem[]
+  isFeatured  Boolean   @default(false)
+  isArchived  Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  @@index([storeId])
+  @@index([categoryId])
+  @@fulltext([name, description])
+ 
+  
+}
+model Orders {
+  id        String    @id @default(uuid())
+  storeId     String    
+  userId      String
+  user        User      @relation( fields: [userId], references: [id])
+  store       Store     @relation("StoreToOrder", fields: [storeId], references: [id])
+  orderItems OrderItem[]
+  isPaid     Boolean   @default(false)
+  isDelivered Boolean   @default(false)
+  phone      String    @default("")
+  address    String    @default("")
+  deliveredAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  @@index([storeId])
+  @@index([userId])
+}
+
+
+model OrderItem {
+  id        String  @id @default(uuid())
+  orderId   String  
+  order     Orders   @relation(fields: [orderId], references: [id])
+  productId String  
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  size      String
+  color     String
+  @@index([orderId])
+  @@index([productId])
+}
+model Review{
+  id String @id @default(uuid())
+  userId String
+  user User @relation(fields: [userId],references: [id],onDelete: Cascade)
+  productId String
+  product Product @relation(fields: [productId],references: [id],onDelete: Cascade)
+  rating Int
+  images ReviewImage[]
+  comment String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+  @@index([productId])
+}
+model ReviewImage {
+  id String @id @default(uuid())
+  rewiewId String
+  rewiew Review @relation(fields: [rewiewId],references: [id],onDelete: Cascade)
+  url String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([rewiewId])
+}
+model ProductColor {
+  id String @id @default(uuid())
+  productId String
+  product Product @relation(fields: [productId],references: [id],onDelete: Cascade)
+ value String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([productId])
+}
+model ProductSize {
+  id String @id @default(uuid())
+  productId String
+  product Product @relation(fields: [productId],references: [id],onDelete: Cascade)
+  value String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([productId])
+}
+model Image {
+  id          String   @id @default(uuid())
+  productId   String   
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url         String   
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([productId])
+}
+model SearchQuery {
+  id                 String @id @default(uuid())
+  query              String
+}
+enum AuthType {
+  GOOGLE
+  EMAIL
+}
+enum UserRole {
+  ADMIN
+  USER
+}
